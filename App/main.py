@@ -23,7 +23,10 @@ st.markdown(
 # --- Columns for comparing up to 3 players ---
 col1, col2, col3 = st.columns(3)
 
-for col, idx in zip([col1, col2, col3], range(1,4)):
+# Set default players per column (change names as you like)
+default_players = ["Romelu Lukaku Menama", "James McCarthy", "John Stones"]
+
+for col, idx in zip([col1, col2, col3], range(1, 4)):
     with col:
         st.subheader(f"Player {idx}")
 
@@ -43,7 +46,15 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             players_filtered = players_filtered[players_filtered["position"] == selected_position]
 
         player_list = sorted(players_filtered["player"].unique())
-        selected_player = st.selectbox(f"Select Player {idx}", player_list, key=f"player_{idx}")
+
+        # Default player selection
+        default_player = default_players[idx-1] if default_players[idx-1] in player_list else player_list[0]
+        selected_player = st.selectbox(
+            f"Select Player {idx}",
+            player_list,
+            index=player_list.index(default_player),
+            key=f"player_{idx}"
+        )
 
         # Display stats and pass map
         if selected_player:
@@ -56,5 +67,16 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             })
 
             player_df = calculate_difficult_passes(df, selected_player)
-            fig = plot_pass_map(selected_player, player_df)
-            st.pyplot(fig, use_container_width=True)
+
+            # Fraction of passes to display
+            frac = st.slider(
+                "Percentage of passes to show",
+                min_value=0,
+                max_value=100,
+                value=30,  # default 30%
+                step=1,
+                key=f"frac_{idx}"  # unique key per column
+            ) / 100.0
+
+            fig = plot_pass_map(selected_player, df, team_name=selected_team, frac=frac, seed=14)
+            st.pyplot(fig)
