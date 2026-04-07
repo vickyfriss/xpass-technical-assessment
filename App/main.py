@@ -12,7 +12,7 @@ st.set_page_config(page_title="xPass Dashboard", layout="wide")
 
 # --- Main Page Title ---
 st.markdown(
-    "<h1 style='text-align: center; color: #2E86AB;'>⚽ xPass Football Analytics Dashboard</h1>", 
+    "<h1 style='text-align: center; color: #2E86AB;'>xPass Football Analytics Dashboard</h1>", 
     unsafe_allow_html=True
 )
 st.markdown(
