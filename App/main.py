@@ -72,7 +72,12 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 
 # Optional: default players
-default_players = ["Joshua King", "Simon Francis", "Richarlison"]
+default_players = ["Romelu Lukaku Menama", "John Stones", "Eden Hazard"]
+
+# Cache the plot to speed up repeated calls
+@st.cache_data
+def cached_plot(player_name, df, frac, seed):
+    return plot_pass_map(player_name, df, frac=frac, seed=seed)
 
 for col, idx in zip([col1, col2, col3], range(1,4)):
     with col:
@@ -93,29 +98,50 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             players = team_pos_to_players.get(key, [])
 
         default_player = default_players[idx-1] if idx-1 < len(default_players) else None
-        selected_player = st.selectbox(f"Select Player {idx}", players, index=players.index(default_player) if default_player in players else 0, key=f"player_{idx}")
+        selected_player = st.selectbox(
+            f"Select Player {idx}",
+            players,
+            index=players.index(default_player) if default_player in players else 0,
+            key=f"player_{idx}"
+        )
 
-        # Display stats and pass map
-        if selected_player:
-            st.markdown(f"**{selected_player} Stats & xPass**")
-            player_stats = build_player_stats(df, selected_player, MIN_PLAYER_PASSES)
-            st.json({
-                "total_passes": int(player_stats["total_passes"]),
-                "avg_xP": float(player_stats["avg_xP"]),
-                "successful_passes": int(player_stats["successful_passes"])
-            })
+        # Fraction slider
+        frac = st.slider(
+            "Percentage of passes to show",
+            min_value=0,
+            max_value=100,
+            value=30,  # default 30%
+            step=1,
+            key=f"frac_{idx}"
+        ) / 100.0
 
-            player_df = calculate_difficult_passes(df, selected_player)
+        # Only recompute plot if player or slider changed
+        state_player_key = f"state_player_{idx}"
+        state_frac_key = f"state_frac_{idx}"
 
-            # Fraction of passes to display
-            frac = st.slider(
-                "Percentage of passes to show",
-                min_value=0,
-                max_value=100,
-                value=30,  # default 30%
-                step=1,
-                key=f"frac_{idx}"
-            ) / 100.0
+        if state_player_key not in st.session_state:
+            st.session_state[state_player_key] = None
+        if state_frac_key not in st.session_state:
+            st.session_state[state_frac_key] = None
 
-            fig = plot_pass_map(selected_player, df, team_name=selected_team, frac=frac, seed=14)
-            st.pyplot(fig)
+        if (st.session_state[state_player_key] != selected_player or
+            st.session_state[state_frac_key] != frac):
+
+            st.session_state[state_player_key] = selected_player
+            st.session_state[state_frac_key] = frac
+
+            # Display stats
+            if selected_player:
+                st.markdown(f"**{selected_player} Stats & xPass**")
+                player_stats = build_player_stats(df, selected_player, MIN_PLAYER_PASSES)
+                st.json({
+                    "total_passes": int(player_stats["total_passes"]),
+                    "avg_xP": float(player_stats["avg_xP"]),
+                    "successful_passes": int(player_stats["successful_passes"])
+                })
+
+                player_df = calculate_difficult_passes(df, selected_player)
+
+                # Generate and show plot
+                fig = cached_plot(selected_player, df, frac, seed=14)
+                st.pyplot(fig)
