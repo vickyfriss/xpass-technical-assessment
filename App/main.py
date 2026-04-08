@@ -11,28 +11,9 @@ st.set_page_config(page_title="xPass Dashboard", layout="wide")
 st.markdown("""
 <style>
 
-/* Metric value size */
-[data-testid="stMetricValue"] {
-    font-size: 20px;
-}
-
-/* Allow labels to wrap */
-[data-testid="stMetricLabel"] {
-    font-size: 12px;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
-    line-height: 1.2;
-}
-
-/* Reduce spacing */
+/* Reduce default metric padding if used elsewhere */
 [data-testid="stMetric"] {
-    padding: 4px 4px;
-}
-
-/* Ensure numbers never truncate */
-[data-testid="stMetricValue"] div {
-    overflow: visible !important;
+    padding: 2px 2px;
 }
 
 </style>
@@ -116,53 +97,6 @@ def cached_difficult_passes(df, player_name):
 def cached_plot(player_name, df, frac, seed=14):
     return plot_pass_map(player_name, df, frac=frac, seed=seed)
 
-# --- Coach insights helper ---
-def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
-
-    peers = df[df["position_group"] == player_pos]
-
-    HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
-
-    player_difficult = df[(df["player"] == player_name) & (df["xP"] <= HARD_PASS_THRESHOLD)]
-
-    peer_difficult = peers[peers["xP"] <= HARD_PASS_THRESHOLD]
-
-    if len(player_difficult) > 0:
-
-        player_completed = player_difficult["Outcome"].sum()
-        player_expected = player_difficult["xP"].sum()
-
-        diff = player_completed - player_expected
-
-        peer_stats = peer_difficult.groupby("player")["Outcome"].sum() - peer_difficult.groupby("player")["xP"].sum()
-
-        percentile = (peer_stats < diff).mean() * 100
-
-        if percentile < 30:
-            difficult_insight = "Struggles with difficult passes."
-        elif percentile > 70:
-            difficult_insight = "Excels at difficult passes."
-        else:
-            difficult_insight = "Average performance on difficult passes."
-
-    else:
-        difficult_insight = "Not enough difficult passes to evaluate."
-
-    peer_easy_share = peers.groupby("player").apply(
-        lambda x: (x["xP"] >= df["xP"].quantile(0.50)).mean()
-    )
-
-    easy_share_percentile = (peer_easy_share < easy_share).mean() * 100
-
-    if easy_share_percentile > 70:
-        safe_insight = "Tends to play it too safe compared to peers."
-    elif easy_share_percentile < 30:
-        safe_insight = "Tends to attempt riskier passes than peers."
-    else:
-        safe_insight = "Balanced approach between safe and difficult passes."
-
-    return [difficult_insight, safe_insight]
-
 # --- Title ---
 st.markdown("""
 <div style="text-align: center; background: linear-gradient(90deg, #FF7F50, #2E86AB); 
@@ -175,7 +109,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Columns for players ---
-col1, spacer1, col2, spacer2, col3 = st.columns([1,0.05,1,0.05,1])
+col1, spacer1, col2, spacer2, col3 = st.columns([1,0.04,1,0.04,1])
 
 default_players = [
     "Romelu Lukaku Menama",
@@ -220,28 +154,39 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             avg_xP = player_stats["avg_xP"]
 
             completion_pct = (successful_passes / total_passes * 100) if total_passes > 0 else 0
-
             completion_xP = ((successful_passes - player_df["xP"].sum()) / total_passes) if total_passes > 0 else 0
 
             col_a, col_b, col_c, col_d, col_e = st.columns(5, gap="small")
 
+            # --- Custom metric card ---
             def custom_metric(label, value):
+
+                value_str = str(value)
+
+                if len(value_str) > 6:
+                    value_size = 16
+                elif len(value_str) > 4:
+                    value_size = 18
+                else:
+                    value_size = 20
+
                 st.markdown(
                     f"""
                     <div style="
                         background:#f8f9fb;
-                        padding:10px;
+                        padding:8px;
                         border-radius:10px;
                         text-align:center;
-                        height:70px;
+                        height:66px;
                         display:flex;
                         flex-direction:column;
                         justify-content:center;
+                        margin:2px;
                     ">
                         <div style="font-size:11px; line-height:1.1;">
                             {label}
                         </div>
-                        <div style="font-size:20px; font-weight:600;">
+                        <div style="font-size:{value_size}px; font-weight:600;">
                             {value}
                         </div>
                     </div>
