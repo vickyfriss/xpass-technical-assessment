@@ -223,7 +223,7 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
 
             completion_xP = ((successful_passes - player_df["xP"].sum()) / total_passes) if total_passes > 0 else 0
 
-            col_a, col_b, col_c, col_d, col_e = st.columns(5)
+            col_a, col_b, col_c, col_d, col_e = st.columns(5, gap="small")
 
             def custom_metric(label, value):
                 st.markdown(
