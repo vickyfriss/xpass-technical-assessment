@@ -92,12 +92,29 @@ for team in teams:
 # --- Cache expensive operations ---
 @st.cache_data
 def cached_player_stats(df, player_name):
-    return build_player_stats(df, player_name, MIN_PLAYER_PASSES)
+
+    stats = build_player_stats(df, player_name, MIN_PLAYER_PASSES)
+
+    # Safety fallback if cache ever returns None
+    if stats is None:
+        stats = {
+            "total_passes": 0,
+            "successful_passes": 0,
+            "avg_xP": 0
+        }
+
+    return stats
 
 
 @st.cache_data
 def cached_difficult_passes(df, player_name):
-    return calculate_difficult_passes(df, player_name)
+
+    df_passes = calculate_difficult_passes(df, player_name)
+
+    if df_passes is None:
+        df_passes = pd.DataFrame({"xP": []})
+
+    return df_passes
 
 
 @st.cache_data
