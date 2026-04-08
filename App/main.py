@@ -119,29 +119,30 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
 
     peer_difficult = peers[peers["xP"] <= HARD_PASS_THRESHOLD]
 
-    if len(player_difficult) > 0:
+    if len(player_difficult) > 30:
 
         player_completed = player_difficult["Outcome"].sum()
         player_expected = player_difficult["xP"].sum()
 
-        diff = player_completed - player_expected
+        completion_pct = player_completed / len(player_difficult)
+        expected_pct = player_expected / len(player_difficult)
 
-        peer_stats = (
-            peer_difficult.groupby("player")["Outcome"].sum()
-            - peer_difficult.groupby("player")["xP"].sum()
-        )
+        diff = completion_pct - expected_pct
 
-        percentile = (peer_stats < diff).mean() * 100
+        if diff < -0.05:
+            insights.append(
+                "Underperforms on difficult passes, completing significantly fewer than expected."
+            )
 
-        if percentile < 30:
-            insights.append("Struggles with difficult passes compared to players in the same position.")
-        elif percentile > 70:
-            insights.append("Excels at completing difficult passes compared to positional peers.")
+        elif diff > 0.05:
+            insights.append(
+                "Performs very well on difficult passes, completing more than expected."
+            )
+
         else:
-            insights.append("Performs around the positional average on difficult passes.")
-
-    else:
-        insights.append("Not enough difficult passes to evaluate performance.")
+            insights.append(
+                "Performs on difficult passes roughly as expected based on pass difficulty."
+            )
 
     # --------------------------------------------------
     # 2. Safe vs risky passing compared to peers
@@ -161,36 +162,9 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
         if 0.40 <= easy_share <= 0.60:
             insights.append("Maintains a balanced mix of safe and difficult passes.")
         elif easy_share < 0.40:
-            insights.append("Slightly favors more progressive or risky passes.")
+            insights.append("Slightly favors more risky passes.")
         else:
             insights.append("Slightly favors safer distribution.")
-
-    # --------------------------------------------------
-    # 3. Pressure performance insight
-    # --------------------------------------------------
-
-    if diff_pct > 0.55:
-        insights.append("Performs well under pressure when attempting difficult passes.")
-    elif diff_pct < 0.35:
-        insights.append("Struggles when attempting low-probability passes.")
-
-    # --------------------------------------------------
-    # 4. Position-specific tactical insight
-    # --------------------------------------------------
-
-    if player_pos == "Defender":
-        insights.append("For defenders, balancing safe circulation with progressive build-up is key.")
-
-    elif player_pos == "Midfielder":
-        insights.append("Midfielders should control tempo and vary pass difficulty depending on game state.")
-
-    elif player_pos == "Forward":
-        insights.append("Creative passing from forwards can unlock defenses but must limit turnovers.")
-
-    elif player_pos == "Wing":
-        insights.append("Wide players often attempt riskier passes to create chances in advanced areas.")
-
-    return insights
 
 
 # --- Title ---
