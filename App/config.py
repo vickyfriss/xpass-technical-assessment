@@ -6,7 +6,7 @@ from pathlib import Path
 DATA_PATH = Path(__file__).resolve().parent.parent / "Datasets" / "premierleague_1516_passes_df.parquet"
 
 # Minimum passes threshold for filtering
-MIN_PLAYER_PASSES = 100
+MIN_PLAYER_PASSES = 300
 
 # Pitch dimensions for mplsoccer
 PITCH_LENGTH = 120
