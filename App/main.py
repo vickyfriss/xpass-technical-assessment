@@ -4,6 +4,43 @@ from analysis import load_data, build_player_stats, calculate_difficult_passes
 from plots import plot_pass_map
 from config import DATA_PATH, MIN_PLAYER_PASSES
 
+# --- Page config ---
+st.set_page_config(page_title="xPass Dashboard", layout="wide")
+
+# --- Fix metric font sizes so they don't get cropped ---
+st.markdown("""
+<style>
+
+/* Reduce metric value size */
+[data-testid="stMetricValue"] {
+    font-size: 20px;
+}
+
+/* Reduce metric label size */
+[data-testid="stMetricLabel"] {
+    font-size: 13px;
+}
+
+/* Reduce spacing around metrics */
+[data-testid="stMetric"] {
+    padding: 4px 4px;
+}
+
+/* Ensure numbers never get truncated */
+[data-testid="stMetricValue"] div {
+    overflow: visible !important;
+}
+
+/* Make metrics responsive */
+@media (max-width: 1200px) {
+    [data-testid="stMetricValue"] {
+        font-size: 18px;
+    }
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # --- Pitch dimensions ---
 PITCH_LENGTH = 120
 PITCH_WIDTH = 80
@@ -47,17 +84,26 @@ df["position_group"] = df["position"].apply(normalize_position)
 # --- Precompute team to positions and players ---
 team_to_positions = {}
 team_pos_to_players = {}
+
 teams = ["ALL"] + sorted(df["team"].unique())
+
 for team in teams:
+
     team_df = df if team == "ALL" else df[df["team"] == team]
+
     positions = sorted(
         team_df["position_group"].unique(),
         key=lambda x: POSITION_ORDER.index(x) if x in POSITION_ORDER else 999
     )
+
     team_to_positions[team] = positions
+
     for pos in positions:
+
         key = (team, pos)
+
         players = sorted(team_df[team_df["position_group"] == pos]["player"].unique())
+
         team_pos_to_players[key] = players
 
 # --- Cache expensive operations ---
@@ -75,19 +121,25 @@ def cached_plot(player_name, df, frac, seed=14):
 
 # --- Coach insights helper ---
 def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
+
     peers = df[df["position_group"] == player_pos]
 
-    # --- Difficult pass performance ---
     HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
+
     player_difficult = df[(df["player"] == player_name) & (df["xP"] <= HARD_PASS_THRESHOLD)]
+
     peer_difficult = peers[peers["xP"] <= HARD_PASS_THRESHOLD]
 
     if len(player_difficult) > 0:
+
         player_completed = player_difficult["Outcome"].sum()
+
         player_expected = player_difficult["xP"].sum()
+
         diff = player_completed - player_expected
 
         peer_stats = peer_difficult.groupby("player")["Outcome"].sum() - peer_difficult.groupby("player")["xP"].sum()
+
         percentile = (peer_stats < diff).mean() * 100
 
         if percentile < 30:
@@ -96,11 +148,15 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
             difficult_insight = "Excels at difficult passes."
         else:
             difficult_insight = "Average performance on difficult passes."
+
     else:
+
         difficult_insight = "Not enough difficult passes to evaluate."
 
-    # --- Easy pass share vs peers (safe vs risky) ---
-    peer_easy_share = peers.groupby("player").apply(lambda x: (x["xP"] >= df["xP"].quantile(0.50)).mean())
+    peer_easy_share = peers.groupby("player").apply(
+        lambda x: (x["xP"] >= df["xP"].quantile(0.50)).mean()
+    )
+
     easy_share_percentile = (peer_easy_share < easy_share).mean() * 100
 
     if easy_share_percentile > 70:
@@ -117,10 +173,7 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
 
     return [difficult_insight, safe_insight]
 
-# --- Page config ---
-st.set_page_config(page_title="xPass Dashboard", layout="wide")
-
-# --- Cool Title ---
+# --- Title ---
 st.markdown("""
 <div style="text-align: center; background: linear-gradient(90deg, #FF7F50, #2E86AB); 
             padding: 20px; border-radius: 15px; color: white;">
@@ -131,24 +184,43 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Columns for 3 players with spacing ---
-col1, spacer1, col2, spacer2, col3 = st.columns([1, 0.05, 1, 0.05, 1])
-default_players = ["Romelu Lukaku Menama", "John Stones", "Eden Hazard"]
+# --- Columns for players ---
+col1, spacer1, col2, spacer2, col3 = st.columns([1,0.05,1,0.05,1])
 
-for col, idx in zip([col1, col2, col3], range(1, 4)):
+default_players = [
+    "Romelu Lukaku Menama",
+    "John Stones",
+    "Eden Hazard"
+]
+
+for col, idx in zip([col1, col2, col3], range(1,4)):
+
     with col:
+
         st.subheader(f"Player {idx}")
-        selected_team = st.selectbox(f"Select Team {idx}", teams, key=f"team_{idx}")
+
+        selected_team = st.selectbox(
+            f"Select Team {idx}",
+            teams,
+            key=f"team_{idx}"
+        )
+
         positions = ["ALL"] + team_to_positions[selected_team]
-        selected_position = st.selectbox(f"Select Position {idx}", positions, key=f"pos_{idx}")
-        
-        # Determine available players
+
+        selected_position = st.selectbox(
+            f"Select Position {idx}",
+            positions,
+            key=f"pos_{idx}"
+        )
+
         if selected_position == "ALL":
             players = sorted(df["player"].unique())
         else:
             key = (selected_team, selected_position)
             players = team_pos_to_players.get(key, [])
-        default_player = default_players[idx - 1] if idx - 1 < len(default_players) else None
+
+        default_player = default_players[idx-1]
+
         selected_player = st.selectbox(
             f"Select Player {idx}",
             players,
@@ -157,59 +229,105 @@ for col, idx in zip([col1, col2, col3], range(1, 4)):
         )
 
         if selected_player:
-            # --- Compute stats ---
+
             player_stats = cached_player_stats(df, selected_player)
+
             player_df = cached_difficult_passes(df, selected_player)
 
             total_passes = player_stats["total_passes"]
+
             successful_passes = player_stats["successful_passes"]
+
             avg_xP = player_stats["avg_xP"]
-            completion_pct = (successful_passes / total_passes * 100) if total_passes > 0 else 0
-            completion_xP = ((successful_passes - player_df["xP"].sum()) / total_passes) if total_passes > 0 else 0
+
+            completion_pct = (
+                successful_passes / total_passes * 100
+                if total_passes > 0 else 0
+            )
+
+            completion_xP = (
+                (successful_passes - player_df["xP"].sum()) / total_passes
+                if total_passes > 0 else 0
+            )
 
             col_a, col_b, col_c, col_d, col_e = st.columns(5)
-            col_a.metric("Total Passes", f"{int(total_passes):,}")
-            col_b.metric("Successful Passes", f"{int(successful_passes):,}")
+
+            col_a.metric("Total Passes", f"{total_passes:,.0f}")
+
+            col_b.metric("Successful Passes", f"{successful_passes:,.0f}")
+
             col_c.metric("Completion %", f"{completion_pct:.1f}%")
+
             col_d.metric("Average xP", f"{avg_xP:.3f}")
+
             col_e.metric("Completion-xP (avg)", f"{completion_xP:.3f}")
 
-            # --- Fraction of passes ---
-            frac = st.slider("Percentage of passes to show", min_value=0, max_value=100, value=30, step=1, key=f"frac_{idx}") / 100.0
+            frac = st.slider(
+                "Percentage of passes to show",
+                min_value=0,
+                max_value=100,
+                value=30,
+                step=1,
+                key=f"frac_{idx}"
+            ) / 100
+
             fig = cached_plot(selected_player, df, frac=frac)
+
             st.pyplot(fig)
 
-            # --- Player Insights ---
             st.subheader("Player Insights")
+
             HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
+
             EASY_PASS_THRESHOLD = df["xP"].quantile(0.50)
+
             VERY_EASY_PASS_THRESHOLD = df["xP"].quantile(0.80)
+
             MIN_DIFFICULT_PASSES = 10
 
-            player_passes = df[df["player"] == selected_player].copy()
+            player_passes = df[df["player"] == selected_player]
+
             difficult_passes = player_passes[player_passes["xP"] <= HARD_PASS_THRESHOLD]
+
             num_difficult = len(difficult_passes)
 
             if num_difficult >= MIN_DIFFICULT_PASSES:
+
                 completed = difficult_passes["Outcome"].sum()
+
                 expected_completed = difficult_passes["xP"].sum()
+
                 diff_perf = completed - expected_completed
+
                 diff_pct = completed / num_difficult
+
                 expected_pct = expected_completed / num_difficult
-                st.markdown(f"**Difficult Passes:** {num_difficult} attempts, "
-                            f"{completed} completed vs {expected_completed:.2f} expected "
-                            f"({diff_perf:+.2f}), completion {diff_pct:.0%} vs expected {expected_pct:.0%}")
+
+                st.markdown(
+                    f"**Difficult Passes:** {num_difficult} attempts, "
+                    f"{completed} completed vs {expected_completed:.2f} expected "
+                    f"({diff_perf:+.2f}), completion {diff_pct:.0%} vs expected {expected_pct:.0%}"
+                )
+
             else:
+
                 diff_pct = 0
+
                 st.markdown("**Difficult Passes:** Not enough difficult passes to evaluate")
 
             easy_share = len(player_passes[player_passes["xP"] >= EASY_PASS_THRESHOLD]) / len(player_passes)
-            very_easy_share = len(player_passes[player_passes["xP"] >= VERY_EASY_PASS_THRESHOLD]) / len(player_passes)
-            st.markdown(f"**Easy Pass Share (top 50% xP):** {easy_share:.0%} | "
-                        f"**Very Easy Pass Share (top 20% xP):** {very_easy_share:.0%}")
 
-            # --- Coach Insights ---
-            player_position = normalize_position(df[df["player"] == selected_player]["position"].iloc[0])
+            very_easy_share = len(player_passes[player_passes["xP"] >= VERY_EASY_PASS_THRESHOLD]) / len(player_passes)
+
+            st.markdown(
+                f"**Easy Pass Share (top 50% xP):** {easy_share:.0%} | "
+                f"**Very Easy Pass Share (top 20% xP):** {very_easy_share:.0%}"
+            )
+
+            player_position = normalize_position(
+                df[df["player"] == selected_player]["position"].iloc[0]
+            )
+
             insights = generate_coach_insights(
                 selected_player,
                 player_position,
@@ -219,44 +337,49 @@ for col, idx in zip([col1, col2, col3], range(1, 4)):
             )
 
             st.subheader("Coach Insights")
+
             for insight in insights:
                 st.markdown(f"- {insight}")
 
-
-# -------------------------------
-# ABOUT / CONTACT PANEL
-# -------------------------------
+# --- About panel ---
 st.markdown("""
 <div style="background: #ffffff; padding:30px 25px; border-radius:15px; 
             max-width:800px; margin:auto; text-align:center; font-size:16px; line-height:1.6; 
             margin-top:50px; margin-bottom:60px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-    <h2 style="background: linear-gradient(90deg, #FF7F50, #2E86AB); 
-               -webkit-background-clip: text; color: transparent; 
-               font-size:28px; margin-bottom:16px; font-family: 'Arial Black', sans-serif;">
-        About the Creator
-    </h2>
-    <p>Hi, I’m <b>Victoria Friss de Kereki</b>, a Data Scientist specialising in <b>sports analytics</b> and performance insights.</p>
-    <p>This xPass Dashboard was built to help visualise player passing patterns and generate actionable insights from Premier League data.</p>
-    <p style="margin-top:20px; font-weight:600; color:#2E86AB;">Connect with me:</p>
-    <div style="margin-top:15px;">
-        <a href="mailto:vicky_friss@hotmail.com" title="Email" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
-            <img src="https://img.icons8.com/ios-filled/32/2E86AB/new-post.png"/>
-        </a>
-        <a href="https://www.linkedin.com/in/victoria-friss-de-kereki/" target="_blank" title="LinkedIn" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
-            <img src="https://img.icons8.com/ios-filled/32/2E86AB/linkedin.png"/>
-        </a>
-        <a href="https://medium.com/@vickyfrissdekereki" target="_blank" title="Medium" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
-            <img src="https://img.icons8.com/ios-filled/32/2E86AB/medium-monogram.png"/>
-        </a>
-        <a href="https://github.com/vickyfriss" target="_blank" title="GitHub" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
-            <img src="https://img.icons8.com/ios-filled/32/2E86AB/github.png"/>
-        </a>
-    </div>
+
+<h2 style="background: linear-gradient(90deg, #FF7F50, #2E86AB); 
+           -webkit-background-clip: text; color: transparent; 
+           font-size:28px; margin-bottom:16px; font-family: 'Arial Black', sans-serif;">
+About the Creator
+</h2>
+
+<p>Hi, I’m <b>Victoria Friss de Kereki</b>, a Data Scientist specialising in <b>sports analytics</b>.</p>
+
+<p>This xPass Dashboard visualises player passing behaviour using expected pass models.</p>
+
+<p style="margin-top:20px; font-weight:600; color:#2E86AB;">Connect with me:</p>
+
+<div style="margin-top:15px;">
+<a href="mailto:vicky_friss@hotmail.com" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+<img src="https://img.icons8.com/ios-filled/32/2E86AB/new-post.png"/>
+</a>
+
+<a href="https://www.linkedin.com/in/victoria-friss-de-kereki/" target="_blank" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+<img src="https://img.icons8.com/ios-filled/32/2E86AB/linkedin.png"/>
+</a>
+
+<a href="https://medium.com/@vickyfrissdekereki" target="_blank" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+<img src="https://img.icons8.com/ios-filled/32/2E86AB/medium-monogram.png"/>
+</a>
+
+<a href="https://github.com/vickyfriss" target="_blank" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+<img src="https://img.icons8.com/ios-filled/32/2E86AB/github.png"/>
+</a>
+</div>
+
 </div>
 
 <style>
-a:hover {
-    transform: scale(1.2);
-}
+a:hover { transform: scale(1.2); }
 </style>
 """, unsafe_allow_html=True)
