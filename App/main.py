@@ -205,7 +205,7 @@ default_players = [
 
 
 # ============================================================
-# PRECOMPUTE PLAYER PASS COUNTS (do this once above the loop)
+# PRECOMPUTE PLAYER PASS COUNTS FOR FILTERING
 # ============================================================
 player_pass_counts = df.groupby("player").size().reset_index(name="passes")
 
