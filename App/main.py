@@ -225,11 +225,44 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
 
             col_a, col_b, col_c, col_d, col_e = st.columns(5)
 
-            col_a.metric("Total\nPasses", f"{total_passes:,.0f}")
-            col_b.metric("Successful\nPasses", f"{successful_passes:,.0f}")
-            col_c.metric("Completion\n%", f"{completion_pct:.1f}%")
-            col_d.metric("Average\nxP", f"{avg_xP:.3f}")
-            col_e.metric("Completion-xP\n(avg)", f"{completion_xP:.3f}")
+            def custom_metric(label, value):
+                st.markdown(
+                    f"""
+                    <div style="
+                        background:#f8f9fb;
+                        padding:10px;
+                        border-radius:10px;
+                        text-align:center;
+                        height:70px;
+                        display:flex;
+                        flex-direction:column;
+                        justify-content:center;
+                    ">
+                        <div style="font-size:11px; line-height:1.1;">
+                            {label}
+                        </div>
+                        <div style="font-size:20px; font-weight:600;">
+                            {value}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with col_a:
+                custom_metric("Total<br>Passes", f"{total_passes:,.0f}")
+
+            with col_b:
+                custom_metric("Successful<br>Passes", f"{successful_passes:,.0f}")
+
+            with col_c:
+                custom_metric("Completion<br>%", f"{completion_pct:.1f}%")
+
+            with col_d:
+                custom_metric("Average<br>xP", f"{avg_xP:.3f}")
+
+            with col_e:
+                custom_metric("Completion-xP<br>(avg)", f"{completion_xP:.3f}")
 
             frac = st.slider(
                 "Percentage of passes to show",
