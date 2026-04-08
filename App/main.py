@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-st.cache_data.clear()
 from analysis import load_data, build_player_stats, calculate_difficult_passes
 from plots import plot_pass_map
 from config import (
@@ -253,15 +252,15 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
         )
 
         if selected_position == "ALL":
-            players = sorted(df["player"].unique())
+            players = sorted(
+                df[df["player"].isin(eligible_players)]["player"].unique()
+            )
         else:
             key = (selected_team, selected_position)
-            players = team_pos_to_players.get(key, [])
-
-        # ============================================================
-        # FILTER PLAYERS WITH ENOUGH PASSES
-        # ============================================================
-        players = [p for p in players if p in eligible_players]
+            players = [
+                p for p in team_pos_to_players.get(key, [])
+                if p in eligible_players
+            ]
 
         if len(players) == 0:
             st.warning("No players with enough passes for this selection.")
