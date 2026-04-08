@@ -204,6 +204,16 @@ default_players = [
 ]
 
 
+# ============================================================
+# PRECOMPUTE PLAYER PASS COUNTS (do this once above the loop)
+# ============================================================
+player_pass_counts = df.groupby("player").size().reset_index(name="passes")
+
+eligible_players = player_pass_counts[
+    player_pass_counts["passes"] >= MIN_PLAYER_PASSES
+]["player"].tolist()
+
+
 for col, idx in zip([col1, col2, col3], range(1,4)):
 
     with col:
@@ -230,6 +240,15 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             key = (selected_team, selected_position)
             players = team_pos_to_players.get(key, [])
 
+        # ============================================================
+        # FILTER PLAYERS WITH ENOUGH PASSES
+        # ============================================================
+        players = [p for p in players if p in eligible_players]
+
+        if len(players) == 0:
+            st.warning("No players with enough passes for this selection.")
+            st.stop()
+
         default_player = default_players[idx-1]
 
         selected_player = st.selectbox(
@@ -240,6 +259,18 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
         )
 
         if selected_player:
+
+            # ============================================================
+            # SAFETY CHECK (prevents crashes)
+            # ============================================================
+            player_pass_count = len(df[df["player"] == selected_player])
+
+            if player_pass_count < MIN_PLAYER_PASSES:
+                st.warning(
+                    f"{selected_player} has only {player_pass_count} passes. "
+                    f"Minimum required for analysis is {MIN_PLAYER_PASSES}."
+                )
+                st.stop()
 
             player_stats = cached_player_stats(df, selected_player)
             player_df = cached_difficult_passes(df, selected_player)
