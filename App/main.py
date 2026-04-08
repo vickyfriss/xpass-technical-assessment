@@ -278,13 +278,16 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             player_stats = cached_player_stats(df, selected_player)
             player_df = cached_difficult_passes(df, selected_player)
 
-            if player_stats is None or player_df is None:
-                st.warning("Player has too few passes to be analysed.")
-                st.stop()
+            # Safety fallback if cache ever returns None
+            if player_stats is None:
+                player_stats = {
+                    "total_passes": 0,
+                    "successful_passes": 0,
+                    "avg_xP": 0
+                }
 
-            total_passes = player_stats["total_passes"]
-            successful_passes = player_stats["successful_passes"]
-            avg_xP = player_stats["avg_xP"]
+            if player_df is None:
+                player_df = pd.DataFrame({"xP": []})
 
             total_passes = player_stats["total_passes"]
             successful_passes = player_stats["successful_passes"]
@@ -295,8 +298,10 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
                 if total_passes > 0 else 0
             )
 
+            expected_sum = player_df["xP"].sum() if not player_df.empty else 0
+
             completion_xP = (
-                (successful_passes - player_df["xP"].sum()) / total_passes
+                (successful_passes - expected_sum) / total_passes
                 if total_passes > 0 else 0
             )
 
