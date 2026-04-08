@@ -5,7 +5,7 @@ from config import DATA_PATH, MIN_PLAYER_PASSES
 
 def load_data(path):
     """Load dataset from given path."""
-    return pd.read_csv(path)
+    return pd.read_parquet(path)
 
 # analysis.py
 def build_player_stats(df, player_name, min_passes=5):
