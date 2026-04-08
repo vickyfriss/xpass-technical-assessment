@@ -275,6 +275,14 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             player_stats = cached_player_stats(df, selected_player)
             player_df = cached_difficult_passes(df, selected_player)
 
+            if player_stats is None or player_df is None:
+                st.warning("Player has too few passes to be analysed.")
+                st.stop()
+
+            total_passes = player_stats["total_passes"]
+            successful_passes = player_stats["successful_passes"]
+            avg_xP = player_stats["avg_xP"]
+
             total_passes = player_stats["total_passes"]
             successful_passes = player_stats["successful_passes"]
             avg_xP = player_stats["avg_xP"]
