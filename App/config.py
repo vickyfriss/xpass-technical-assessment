@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-# Relative path to dataset folder
-DATA_PATH = Path(__file__).resolve().parent.parent / "Datasets" / "premierleague_1516_passes_df.csv"
+# Relative path to dataset folder - parquet instead of csv as it's small enough to be pushed to GitHub and faster to load
+DATA_PATH = Path(__file__).resolve().parent.parent / "Datasets" / "premierleague_1516_passes_df.parquet"
 
 # Minimum passes threshold for filtering
 MIN_PLAYER_PASSES = 10
