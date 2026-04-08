@@ -7,35 +7,45 @@ from config import DATA_PATH, MIN_PLAYER_PASSES
 # --- Page config ---
 st.set_page_config(page_title="xPass Dashboard", layout="wide")
 
-# --- Fix metric font sizes so they don't get cropped ---
+# --- Style, CSS
 st.markdown("""
 <style>
 
-/* Reduce metric value size */
+/* Metric value size */
 [data-testid="stMetricValue"] {
     font-size: 20px;
 }
 
-/* Reduce metric label size */
+/* Allow labels to wrap to multiple lines */
 [data-testid="stMetricLabel"] {
-    font-size: 13px;
+    font-size: 12px;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    line-height: 1.2;
 }
 
-/* Reduce spacing around metrics */
+/* Reduce spacing */
 [data-testid="stMetric"] {
     padding: 4px 4px;
 }
 
-/* Ensure numbers never get truncated */
+/* Ensure numbers never truncate */
 [data-testid="stMetricValue"] div {
     overflow: visible !important;
 }
 
-/* Make metrics responsive */
+/* Responsive adjustments */
 @media (max-width: 1200px) {
+
     [data-testid="stMetricValue"] {
         font-size: 18px;
     }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 11px;
+    }
+
 }
 
 </style>
