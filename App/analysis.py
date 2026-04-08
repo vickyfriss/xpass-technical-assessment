@@ -7,21 +7,28 @@ def load_data(path):
     """Load dataset from given path."""
     return pd.read_parquet(path)
 
-# analysis.py
-def build_player_stats(df, player_name, min_passes=50):
-    """
-    Build player-level statistics filtered by minimum passes.
-    """
-    player_df = df[df['player'] == player_name]
-    if len(player_df) < min_passes:
-        return None  # or handle low-pass players
-    # compute stats here...
-    stats = {
-        "total_passes": len(player_df),
-        "avg_xP": player_df["xP"].mean(),
-        "successful_passes": player_df["Outcome"].sum()
+
+def build_player_stats(df, player_name, min_passes):
+
+    player_df = df[df["player"] == player_name]
+
+    total_passes = len(player_df)
+
+    if total_passes < min_passes:
+        return {
+            "total_passes": 0,
+            "successful_passes": 0,
+            "avg_xP": 0
+        }
+
+    successful_passes = (player_df["Outcome"] == 1).sum()
+    avg_xP = player_df["xP"].mean()
+
+    return {
+        "total_passes": total_passes,
+        "successful_passes": successful_passes,
+        "avg_xP": avg_xP
     }
-    return stats
 
 def calculate_difficult_passes(df, player_name):
     """
