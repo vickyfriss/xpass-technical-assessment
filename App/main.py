@@ -22,10 +22,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Pitch dimensions ---
-PITCH_LENGTH = 120
-PITCH_WIDTH = 80
-
 # --- Normalize positions ---
 def normalize_position(pos):
     pos = pos.replace("Left ", "").replace("Right ", "")
@@ -70,43 +66,38 @@ teams = ["ALL"] + sorted(df["team"].unique())
 
 for team in teams:
     team_df = df if team == "ALL" else df[df["team"] == team]
-
     positions = sorted(
         team_df["position_group"].unique(),
         key=lambda x: POSITION_ORDER.index(x) if x in POSITION_ORDER else 999
     )
-
     team_to_positions[team] = positions
-
     for pos in positions:
         key = (team, pos)
         players = sorted(team_df[team_df["position_group"] == pos]["player"].unique())
         team_pos_to_players[key] = players
 
-# --- Functions without caching ---
+# --- Helper functions ---
 def get_player_stats(df, player_name):
-    stats = build_player_stats(df, player_name, MIN_PLAYER_PASSES)
-    if stats is None:
-        stats = {"total_passes":0, "successful_passes":0, "avg_xP":0}
-    return stats
+    player_df = df[df["player"] == player_name]
+    if player_df.empty:
+        return {"total_passes": 0, "successful_passes": 0, "avg_xP": 0}
+    return build_player_stats(df, player_name, MIN_PLAYER_PASSES)
 
 def get_difficult_passes(df, player_name):
-    df_passes = calculate_difficult_passes(df, player_name)
-    if df_passes is None:
-        df_passes = pd.DataFrame({"xP": []})
-    return df_passes
+    player_df = df[df["player"] == player_name]
+    if player_df.empty:
+        return pd.DataFrame(columns=["xP"])
+    return calculate_difficult_passes(df, player_name)
 
 def get_plot(player_name, df, frac, seed=14):
     return plot_pass_map(player_name, df, frac=frac, seed=seed)
 
-# --- Coach insights helper (PEER COMPARISON VERSION) ---
 def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
     peers = df[df["position_group"] == player_pos]
     insights = []
 
     HARD_PASS_THRESHOLD = df["xP"].quantile(DIFFICULT_PASS_QUANTILE)
     player_difficult = df[(df["player"] == player_name) & (df["xP"] <= HARD_PASS_THRESHOLD)]
-    peer_difficult = peers[peers["xP"] <= HARD_PASS_THRESHOLD]
 
     if len(player_difficult) > 30:
         player_completed = player_difficult["Outcome"].sum()
@@ -142,7 +133,7 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
 
     return insights
 
-# --- Title ---
+# --- Page title ---
 st.markdown("""
 <div style="text-align: center; background: linear-gradient(90deg, #FF7F50, #2E86AB);
             padding: 20px; border-radius: 15px; color: white;">
@@ -159,28 +150,25 @@ st.markdown("""
 col1, spacer1, col2, spacer2, col3 = st.columns([1,0.04,1,0.04,1])
 default_players = ["Romelu Lukaku Menama", "John Stones", "Eden Hazard"]
 
-# ============================================================
-# PRECOMPUTE PLAYER PASS COUNTS FOR FILTERING
-# ============================================================
+# Precompute player pass counts
 player_pass_counts = df.groupby("player").size().reset_index(name="passes")
-eligible_players = player_pass_counts[player_pass_counts["passes"] >= MIN_PLAYER_PASSES]["player"].tolist()
 
-for col, idx in zip([col1, col2, col3], range(1,4)):
-
+for col, idx in zip([col1, col2, col3], range(1, 4)):
     with col:
         st.subheader(f"Player {idx}")
         selected_team = st.selectbox(f"Select Team {idx}", teams, key=f"team_{idx}")
         positions = ["ALL"] + team_to_positions[selected_team]
         selected_position = st.selectbox(f"Select Position {idx}", positions, key=f"pos_{idx}")
 
+        # Determine available players
         if selected_position == "ALL":
-            players = sorted(df[df["player"].isin(eligible_players)]["player"].unique())
+            players = sorted(df["player"].unique())
         else:
             key = (selected_team, selected_position)
-            players = [p for p in team_pos_to_players.get(key, []) if p in eligible_players]
+            players = team_pos_to_players.get(key, [])
 
         if len(players) == 0:
-            st.warning("No players with enough passes for this selection.")
+            st.warning("No players available for this selection.")
             st.stop()
 
         default_player = default_players[idx-1]
@@ -192,14 +180,13 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
         )
 
         if selected_player:
-            # ============================================================
-            # SAFETY CHECK
-            # ============================================================
+            # Check player pass count
             player_pass_count = len(df[df["player"] == selected_player])
             if player_pass_count < MIN_PLAYER_PASSES:
-                st.warning(f"{selected_player} has only {player_pass_count} passes. Minimum required is {MIN_PLAYER_PASSES}.")
-                st.stop()
+                st.warning(f"{selected_player} has only {player_pass_count} passes. Not enough data for analysis.")
+                continue  # Skip stats, plots, insights
 
+            # --- Player stats ---
             player_stats = get_player_stats(df, selected_player)
             player_df = get_difficult_passes(df, selected_player)
 
@@ -211,8 +198,8 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             expected_sum = player_df["xP"].sum() if not player_df.empty else 0
             completion_xP = ((successful_passes - expected_sum) / total_passes if total_passes > 0 else 0)
 
+            # Display metrics
             col_a, col_b, col_c, col_d, col_e = st.columns(5, gap="small")
-
             def custom_metric(label, value):
                 value_str = str(value)
                 value_size = 20 if len(value_str) <= 4 else (18 if len(value_str) <= 6 else 16)
@@ -244,11 +231,12 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             with col_e:
                 custom_metric("Completion-xP<br>(avg)", f"{completion_xP:.3f}")
 
+            # --- Pass map ---
             frac = st.slider("Percentage of passes to show", 0, 100, 30, 1, key=f"frac_{idx}") / 100
             fig = get_plot(selected_player, df, frac=frac)
             st.pyplot(fig)
 
-            # --- PLAYER INSIGHTS ---
+            # --- Player insights ---
             st.subheader("Player Insights")
             MIN_DIFFICULT_PASSES = 10
             HARD_PASS_THRESHOLD = df["xP"].quantile(DIFFICULT_PASS_QUANTILE)
@@ -274,7 +262,7 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             very_easy_share = len(player_passes[player_passes["xP"] >= VERY_EASY_PASS_THRESHOLD]) / len(player_passes)
             st.markdown(f"**Easy Pass Share (top 50% xP):** {easy_share:.0%} | **Very Easy Pass Share (top 20% xP):** {very_easy_share:.0%}")
 
-            # --- COACH INSIGHTS ---
+            # --- Coach insights ---
             player_position = normalize_position(df[df["player"] == selected_player]["position"].iloc[0])
             insights = generate_coach_insights(selected_player, player_position, diff_pct, easy_share, df)
             st.subheader("Coach Insights")
