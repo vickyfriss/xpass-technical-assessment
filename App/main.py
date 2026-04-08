@@ -73,6 +73,45 @@ def cached_difficult_passes(df, player_name):
 def cached_plot(player_name, df, frac, seed=14):
     return plot_pass_map(player_name, df, frac=frac, seed=seed)
 
+# --- Coach insights helper ---
+def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
+    peers = df[df["position_group"] == player_pos]
+
+    # --- Difficult pass performance ---
+    HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
+    player_difficult = df[(df["player"] == player_name) & (df["xP"] <= HARD_PASS_THRESHOLD)]
+    peer_difficult = peers[peers["xP"] <= HARD_PASS_THRESHOLD]
+
+    if len(player_difficult) > 0:
+        player_completed = player_difficult["Outcome"].sum()
+        player_expected = player_difficult["xP"].sum()
+        diff = player_completed - player_expected
+
+        peer_stats = peer_difficult.groupby("player")["Outcome"].sum() - peer_difficult.groupby("player")["xP"].sum()
+        percentile = (peer_stats < diff).mean() * 100
+
+        if percentile < 30:
+            difficult_insight = "Struggles with difficult passes"
+        elif percentile > 70:
+            difficult_insight = "Excels at difficult passes"
+        else:
+            difficult_insight = "Average performance on difficult passes"
+    else:
+        difficult_insight = "Not enough difficult passes to evaluate"
+
+    # --- Easy pass share vs peers (safe vs risky) ---
+    peer_easy_share = peers.groupby("player").apply(lambda x: (x["xP"] >= df["xP"].quantile(0.50)).mean())
+    easy_share_percentile = (peer_easy_share < easy_share).mean() * 100
+
+    if easy_share_percentile > 70:
+        safe_insight = "Tends to play it too safe compared to peers"
+    elif easy_share_percentile < 30:
+        safe_insight = "Tends to attempt riskier passes than peers"
+    else:
+        safe_insight = "Balanced approach between safe and difficult passes"
+
+    return [difficult_insight, safe_insight]
+
 # --- Page config ---
 st.set_page_config(page_title="xPass Dashboard", layout="wide")
 st.markdown("<h1 style='text-align: center; color: #2E86AB;'>xPass Dashboard</h1>", unsafe_allow_html=True)
@@ -147,9 +186,24 @@ for col, idx in zip([col1, col2, col3], range(1, 4)):
                             f"{completed} completed vs {expected_completed:.2f} expected "
                             f"({diff_perf:+.2f}), completion {diff_pct:.0%} vs expected {expected_pct:.0%}")
             else:
+                diff_pct = 0
                 st.markdown("**Difficult Passes:** Not enough difficult passes to evaluate")
 
             easy_share = len(player_passes[player_passes["xP"] >= EASY_PASS_THRESHOLD]) / len(player_passes)
             very_easy_share = len(player_passes[player_passes["xP"] >= VERY_EASY_PASS_THRESHOLD]) / len(player_passes)
             st.markdown(f"**Easy Pass Share (top 50% xP):** {easy_share:.0%} | "
                         f"**Very Easy Pass Share (top 20% xP):** {very_easy_share:.0%}")
+
+            # --- Coach Insights ---
+            player_position = normalize_position(df[df["player"] == selected_player]["position"].iloc[0])
+            insights = generate_coach_insights(
+                selected_player,
+                player_position,
+                diff_pct,
+                easy_share,
+                df
+            )
+
+            st.subheader("Coach Insights")
+            for insight in insights:
+                st.markdown(f"- {insight}")
