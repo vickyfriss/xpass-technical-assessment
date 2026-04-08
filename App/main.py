@@ -92,17 +92,14 @@ for team in teams:
 # --- Cache expensive operations ---
 @st.cache_data
 def cached_player_stats(df, player_name):
-
-    stats = build_player_stats(df, player_name, MIN_PLAYER_PASSES)
-
-    # Safety fallback if cache ever returns None
-    if stats is None:
-        stats = {
-            "total_passes": 0,
-            "successful_passes": 0,
-            "avg_xP": 0
-        }
-
+    """Always return a dict, even if the player has few passes."""
+    try:
+        # Remove min_passes check so all players are shown
+        stats = build_player_stats(df, player_name, min_passes=0)
+        if stats is None:
+            stats = {"total_passes": 0, "successful_passes": 0, "avg_xP": 0}
+    except Exception:
+        stats = {"total_passes": 0, "successful_passes": 0, "avg_xP": 0}
     return stats
 
 
