@@ -38,6 +38,9 @@ def calculate_difficult_passes(df, player_name):
 
     player_df = df[df["player"] == player_name].copy()
 
+    if player_df.empty:
+        return pd.DataFrame()
+
     # Ensure xP is numeric
     player_df["xP"] = pd.to_numeric(player_df["xP"], errors="coerce")
     player_df = player_df.dropna(subset=["xP"])
