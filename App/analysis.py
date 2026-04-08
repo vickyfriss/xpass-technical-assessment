@@ -1,14 +1,14 @@
 # App/analysis.py
 
 import pandas as pd
-from config import DATA_PATH, MIN_PLAYER_PASSES
+from config import DATA_PATH, MIN_PLAYER_PASSES, DIFFICULT_PASS_QUANTILE
 
 def load_data(path):
     """Load dataset from given path."""
     return pd.read_parquet(path)
 
 # analysis.py
-def build_player_stats(df, player_name, min_passes=5):
+def build_player_stats(df, player_name, min_passes=50):
     """
     Build player-level statistics filtered by minimum passes.
     """
@@ -23,16 +23,21 @@ def build_player_stats(df, player_name, min_passes=5):
     }
     return stats
 
-def calculate_difficult_passes(df, player_name, threshold=0.7):
+def calculate_difficult_passes(df, player_name):
     """
-    Returns passes for a player with xP above a given threshold.
+    Returns the difficult passes for a player using the same
+    definition as in main.py (bottom 20% xP).
     """
+
     player_df = df[df["player"] == player_name].copy()
-    
-    # Convert xP column to numeric
+
+    # Ensure xP is numeric
     player_df["xP"] = pd.to_numeric(player_df["xP"], errors="coerce")
-    
-    # Drop rows where xP couldn't be converted
     player_df = player_df.dropna(subset=["xP"])
-    
-    return player_df[player_df["xP"] > threshold]
+
+    # Same threshold used in main.py
+    HARD_PASS_THRESHOLD = df["xP"].quantile(DIFFICULT_PASS_QUANTILE)
+
+    difficult_passes = player_df[player_df["xP"] <= HARD_PASS_THRESHOLD]
+
+    return difficult_passes

@@ -2,7 +2,13 @@ import streamlit as st
 import pandas as pd
 from analysis import load_data, build_player_stats, calculate_difficult_passes
 from plots import plot_pass_map
-from config import DATA_PATH, MIN_PLAYER_PASSES
+from config import (
+    DATA_PATH,
+    MIN_PLAYER_PASSES,
+    DIFFICULT_PASS_QUANTILE,
+    EASY_PASS_QUANTILE,
+    VERY_EASY_PASS_QUANTILE
+)
 
 # --- Page config ---
 st.set_page_config(page_title="xPass Dashboard", layout="wide")
@@ -110,7 +116,7 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
     # 1. Difficult pass performance vs peers
     # --------------------------------------------------
 
-    HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
+    HARD_PASS_THRESHOLD = df["xP"].quantile(DIFFICULT_PASS_QUANTILE)
 
     player_difficult = df[
         (df["player"] == player_name) &
@@ -143,6 +149,11 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
             insights.append(
                 "Performs on difficult passes roughly as expected based on pass difficulty."
             )
+
+    else:
+        insights.append(
+            "Not enough difficult passes to evaluate performance."
+        )
 
     # --------------------------------------------------
     # 2. Safe vs risky passing compared to peers
@@ -319,11 +330,11 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
             # --- PLAYER INSIGHTS ---
             st.subheader("Player Insights")
 
-            HARD_PASS_THRESHOLD = df["xP"].quantile(0.20)
-            EASY_PASS_THRESHOLD = df["xP"].quantile(0.50)
-            VERY_EASY_PASS_THRESHOLD = df["xP"].quantile(0.80)
-
             MIN_DIFFICULT_PASSES = 10
+
+            HARD_PASS_THRESHOLD = df["xP"].quantile(DIFFICULT_PASS_QUANTILE)
+            EASY_PASS_THRESHOLD = df["xP"].quantile(EASY_PASS_QUANTILE)
+            VERY_EASY_PASS_THRESHOLD = df["xP"].quantile(VERY_EASY_PASS_QUANTILE)
 
             player_passes = df[df["player"] == selected_player].copy()
 
