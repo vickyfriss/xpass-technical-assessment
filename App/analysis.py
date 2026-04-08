@@ -1,28 +1,31 @@
 # App/analysis.py
 
 import pandas as pd
-from config import DATA_PATH, MIN_PLAYER_PASSES, DIFFICULT_PASS_QUANTILE
+from config import DATA_PATH, DIFFICULT_PASS_QUANTILE
+
 
 def load_data(path):
     """Load dataset from given path."""
     return pd.read_parquet(path)
 
 
-def build_player_stats(df, player_name, min_passes):
+def build_player_stats(df, player_name, min_passes=None):
+    """
+    Build passing statistics for a player.
+
+    Note:
+    We do NOT block players with few passes anymore.
+    The dashboard handles cases where there is not enough data
+    for deeper analysis.
+    """
 
     player_df = df[df["player"] == player_name]
 
     total_passes = len(player_df)
 
-    if total_passes < min_passes:
-        return {
-            "total_passes": 0,
-            "successful_passes": 0,
-            "avg_xP": 0
-        }
-
     successful_passes = (player_df["Outcome"] == 1).sum()
-    avg_xP = player_df["xP"].mean()
+
+    avg_xP = player_df["xP"].mean() if total_passes > 0 else 0
 
     return {
         "total_passes": total_passes,
@@ -30,10 +33,11 @@ def build_player_stats(df, player_name, min_passes):
         "avg_xP": avg_xP
     }
 
+
 def calculate_difficult_passes(df, player_name):
     """
     Returns the difficult passes for a player using the same
-    definition as in main.py (bottom 20% xP).
+    definition as in main.py (bottom quantile xP).
     """
 
     player_df = df[df["player"] == player_name].copy()
