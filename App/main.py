@@ -222,21 +222,40 @@ for col, idx in zip([col1, col2, col3], range(1,4)):
 
             st.pyplot(fig)
 
-# --- About panel ---
+# -------------------------------
+# ABOUT / CONTACT PANEL
+# -------------------------------
 st.markdown("""
 <div style="background: #ffffff; padding:30px 25px; border-radius:15px; 
             max-width:800px; margin:auto; text-align:center; font-size:16px; line-height:1.6; 
             margin-top:50px; margin-bottom:60px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-
-<h2 style="background: linear-gradient(90deg, #FF7F50, #2E86AB); 
-           -webkit-background-clip: text; color: transparent; 
-           font-size:28px; margin-bottom:16px; font-family: 'Arial Black', sans-serif;">
-About the Creator
-</h2>
-
-<p>Hi, I’m <b>Victoria Friss de Kereki</b>, a Data Scientist specialising in <b>sports analytics</b>.</p>
-
-<p>This xPass Dashboard visualises player passing behaviour using expected pass models.</p>
-
+    <h2 style="background: linear-gradient(90deg, #FF7F50, #2E86AB); 
+               -webkit-background-clip: text; color: transparent; 
+               font-size:28px; margin-bottom:16px; font-family: 'Arial Black', sans-serif;">
+        About the Creator
+    </h2>
+    <p>Hi, I’m <b>Victoria Friss de Kereki</b>, a Data Scientist specialising in <b>sports analytics</b> and performance insights.</p>
+    <p>This xPass Dashboard was built to help visualise player passing patterns and generate actionable insights from Premier League data.</p>
+    <p style="margin-top:20px; font-weight:600; color:#2E86AB;">Connect with me:</p>
+    <div style="margin-top:15px;">
+        <a href="mailto:vicky_friss@hotmail.com" title="Email" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+            <img src="https://img.icons8.com/ios-filled/32/2E86AB/new-post.png"/>
+        </a>
+        <a href="https://www.linkedin.com/in/victoria-friss-de-kereki/" target="_blank" title="LinkedIn" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+            <img src="https://img.icons8.com/ios-filled/32/2E86AB/linkedin.png"/>
+        </a>
+        <a href="https://medium.com/@vickyfrissdekereki" target="_blank" title="Medium" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+            <img src="https://img.icons8.com/ios-filled/32/2E86AB/medium-monogram.png"/>
+        </a>
+        <a href="https://github.com/vickyfriss" target="_blank" title="GitHub" style="margin:0 15px; display:inline-block; transition: transform 0.2s;">
+            <img src="https://img.icons8.com/ios-filled/32/2E86AB/github.png"/>
+        </a>
+    </div>
 </div>
+
+<style>
+a:hover {
+    transform: scale(1.2);
+}
+</style>
 """, unsafe_allow_html=True)
