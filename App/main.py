@@ -91,31 +91,46 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
         percentile = (peer_stats < diff).mean() * 100
 
         if percentile < 30:
-            difficult_insight = "Struggles with difficult passes"
+            difficult_insight = "Struggles with difficult passes."
         elif percentile > 70:
-            difficult_insight = "Excels at difficult passes"
+            difficult_insight = "Excels at difficult passes."
         else:
-            difficult_insight = "Average performance on difficult passes"
+            difficult_insight = "Average performance on difficult passes."
     else:
-        difficult_insight = "Not enough difficult passes to evaluate"
+        difficult_insight = "Not enough difficult passes to evaluate."
 
     # --- Easy pass share vs peers (safe vs risky) ---
     peer_easy_share = peers.groupby("player").apply(lambda x: (x["xP"] >= df["xP"].quantile(0.50)).mean())
     easy_share_percentile = (peer_easy_share < easy_share).mean() * 100
 
+    # Determine safe/risky / balanced wording
     if easy_share_percentile > 70:
-        safe_insight = "Tends to play it too safe compared to peers"
+        safe_insight = "Tends to play it too safe compared to peers."
     elif easy_share_percentile < 30:
-        safe_insight = "Tends to attempt riskier passes than peers"
+        safe_insight = "Tends to attempt riskier passes than peers."
     else:
-        safe_insight = "Balanced approach between safe and difficult passes"
+        if 0.40 <= easy_share <= 0.60:
+            safe_insight = "Balanced approach between safe and difficult passes."
+        elif easy_share < 0.40:
+            safe_insight = "Slightly prefers risky passes."
+        else:
+            safe_insight = "Slightly prefers safe passes."
 
     return [difficult_insight, safe_insight]
 
 # --- Page config ---
 st.set_page_config(page_title="xPass Dashboard", layout="wide")
-st.markdown("<h1 style='text-align: center; color: #2E86AB;'>xPass Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>Compare player passing stats and xPass maps side by side</p>", unsafe_allow_html=True)
+
+# --- Cool Title ---
+st.markdown("""
+<div style="text-align: center; background: linear-gradient(90deg, #FF7F50, #2E86AB); 
+            padding: 20px; border-radius: 15px; color: white;">
+    <h1 style="margin: 0; font-family: 'Arial Black', sans-serif;">
+        xPass Dashboard - Premier League 2015/16
+    </h1>
+    <p style="margin: 0; font-size: 18px;">Compare player passing stats and xPass maps side by side</p>
+</div>
+""", unsafe_allow_html=True)
 
 # --- Columns for 3 players ---
 col1, col2, col3 = st.columns(3)
