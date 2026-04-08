@@ -7,7 +7,7 @@ from config import DATA_PATH, MIN_PLAYER_PASSES
 # --- Page config ---
 st.set_page_config(page_title="xPass Dashboard", layout="wide")
 
-# --- Style, CSS
+# --- Style, CSS ---
 st.markdown("""
 <style>
 
@@ -16,7 +16,7 @@ st.markdown("""
     font-size: 20px;
 }
 
-/* Allow labels to wrap to multiple lines */
+/* Allow labels to wrap */
 [data-testid="stMetricLabel"] {
     font-size: 12px;
     white-space: normal !important;
@@ -35,7 +35,7 @@ st.markdown("""
     overflow: visible !important;
 }
 
-/* Responsive adjustments */
+/* Responsive */
 @media (max-width: 1200px) {
 
     [data-testid="stMetricValue"] {
