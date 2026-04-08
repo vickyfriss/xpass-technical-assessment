@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+
+st.cache_data.clear()  # clear old cached values once
+
 from analysis import load_data, build_player_stats, calculate_difficult_passes
 from plots import plot_pass_map
 from config import (
