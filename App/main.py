@@ -166,6 +166,8 @@ def generate_coach_insights(player_name, player_pos, diff_pct, easy_share, df):
         else:
             insights.append("Slightly favors safer distribution.")
 
+    return insights
+
 
 # --- Title ---
 st.markdown("""
